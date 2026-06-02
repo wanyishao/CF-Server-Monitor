@@ -419,9 +419,14 @@ body.light .btn-blue:hover {
   color: #2563eb;
 }
 
-body.light .btn-red:hover {
+body.light .btn-red {
   border-color: #dc2626;
   color: #dc2626;
+}
+
+body.light .btn-red:hover {
+  background: #dc2626;
+  color: #000;
 }
 
 body.light .tabs {

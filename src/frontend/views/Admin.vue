@@ -69,6 +69,11 @@
             :class="{ active: activeTab === 'settings' }"
             @click="activeTab = 'settings'"
           >▸ {{ trans.settings }}</button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'database' }"
+            @click="activeTab = 'database'"
+          >▸ {{ trans.dbManagement }}</button>
         </div>
 
         <div id="tab-servers" class="tab-content" :class="{ active: activeTab === 'servers' }">
@@ -252,6 +257,26 @@
             <button @click="saveSettings" class="btn btn-primary" :disabled="saving" style="padding: 12px 24px; font-size: 14px;">{{ saving ? '⏳' : '💾' }} {{ saving ? trans.saving : trans.saveConfig }}</button>
           </div>
         </div>
+
+        <div id="tab-database" class="tab-content" :class="{ active: activeTab === 'database' }">
+          <div class="settings-section">
+            <div class="section-title"><span>▸</span> {{ trans.dbManagement }}</div>
+            
+            <div style="display: flex; gap: 20px;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">{{ trans.upgradeDatabase }}</label>
+                <p style="color: var(--text-muted); margin-bottom: 8px;">{{ trans.upgradeDesc }}</p>
+                <button @click="openDbModal('upgrade')" class="btn btn-primary" :disabled="dbLoading" style="padding: 12px 24px; font-size: 14px;">⬆️ {{ trans.upgradeDatabase }}</button>
+              </div>
+
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" style="color: var(--accent-red); font-weight: 600;">⚠️ {{ trans.rebuildDatabase }}</label>
+                <p style="color: var(--text-muted); margin-bottom: 8px;">{{ trans.rebuildDesc }}</p>
+                <button @click="openDbModal('rebuild')" class="btn btn-red" :disabled="dbLoading" style="padding: 12px 24px; font-size: 14px;">🗑️ {{ trans.rebuildDatabase }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="editModal" class="modal-overlay" :style="{ display: showEditModal ? 'block' : 'none' }">
@@ -335,13 +360,65 @@
             <button @click="copyUninstallCmd" class="btn btn-icon btn-green" :title="trans.copy" style="margin-left: 8px;">{{ uninstallCopied ? '✅' : '📋' }}</button>
           </div>
 
-          <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 16px;">
+          <p style="color: var(--text-muted); margin-bottom: 16px;">
             <span style="color: var(--accent-yellow);">[i]</span> {{ trans.clickToCopyCmd }}
           </p>
 
           <div class="modal-footer" style="justify-content: space-between;">
             <button @click="confirmDelete" class="btn btn-red">{{ trans.confirmDelete }}</button>
             <button @click="closeDeleteModal" class="btn">{{ trans.cancelAction }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="dbModal" class="modal-overlay" :style="{ display: showDbModal ? 'block' : 'none' }">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <div class="modal-title">$ {{ dbOperation === 'rebuild' ? 'DROP DATABASE' : 'ALTER DATABASE' }}</div>
+            <button class="modal-close" @click="closeDbModal" :disabled="dbLoading">✕</button>
+          </div>
+
+          <div v-if="dbOperation === 'rebuild'" style="margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="color: var(--accent-red); font-size: 20px;">⚠️</span>
+              <span style="color: var(--accent-red); font-weight: 600;">{{ trans.dangerOperation }}</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 12px; line-height: 1.6;">
+              {{ trans.rebuildWarning }}
+            </p>
+          </div>
+
+          <div v-if="dbOperation === 'upgrade'" style="margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="color: var(--accent-yellow); font-size: 20px;">ℹ️</span>
+              <span style="color: var(--accent-yellow); font-weight: 600;">{{ trans.upgradeDatabase }}</span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 12px; line-height: 1.6;">
+              {{ trans.upgradeDesc }}
+            </p>
+          </div>
+
+          <div v-if="dbResult" :style="{ padding: '12px', borderRadius: '4px', marginBottom: '16px', background: dbResult.success ? 'rgba(46,160,67,0.1)' : 'rgba(248,81,73,0.1)', border: '1px solid ' + (dbResult.success ? 'var(--accent-green)' : 'var(--accent-red)') }">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span :style="{ color: dbResult.success ? 'var(--accent-green)' : 'var(--accent-red)', fontWeight: '600' }">
+                {{ dbResult.success ? '✅' : '❌' }} {{ getMessage(dbResult.message) || (dbResult.success ? trans.operationSuccess : trans.operationFailed) }}
+              </span>
+            </div>
+            <div v-if="dbResult.error" style="color: var(--accent-red); margin-top: 8px;">
+              {{ dbResult.error }}
+            </div>
+          </div>
+
+          <div class="modal-footer" style="justify-content: space-between;">
+            <button 
+              v-if="!dbResult" 
+              @click="dbOperation === 'rebuild' ? handleRebuildDatabase() : handleUpgradeDatabase()" 
+              class="btn btn-red" 
+              :disabled="dbLoading"
+            >
+              {{ dbLoading ? (dbOperation === 'rebuild' ? trans.rebuilding : trans.upgrading) : (dbOperation === 'rebuild' ? trans.confirmRebuild : trans.upgradeDatabase) }}
+            </button>
+            <button @click="closeDbModal" class="btn" :disabled="dbLoading">{{ trans.cancel }}</button>
           </div>
         </div>
       </div>
@@ -355,7 +432,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import TerminalHeader from '../components/TerminalHeader.vue'
 import Footer from '../components/Footer.vue'
-import { adminApi, login, logout as apiLogout, formatBytes } from '../utils/api'
+import { adminApi, login, logout as apiLogout, formatBytes, upgradeDatabase, rebuildDatabase } from '../utils/api'
 import { t, currentLang } from '../utils/i18n'
 import { translations } from '../utils/i18n'
 
@@ -417,6 +494,11 @@ const deleteServerId = ref('')
 const copiedServerId = ref(null)
 const uninstallCopied = ref(false)
 const saving = ref(false)
+
+const showDbModal = ref(false)
+const dbOperation = ref('')
+const dbLoading = ref(false)
+const dbResult = ref(null)
 
 const handleLogin = async () => {
     loginError.value = ''
@@ -761,6 +843,60 @@ const getStatusText = (server) => {
     }
     reader.readAsDataURL(file)
   }
+
+const handleUpgradeDatabase = async () => {
+  dbOperation.value = 'upgrade'
+  dbLoading.value = true
+  dbResult.value = null
+  
+  try {
+    const result = await upgradeDatabase()
+    dbResult.value = result
+    if (result.success) {
+      setTimeout(() => {
+        showDbModal.value = false
+        location.reload()
+      }, 1500)
+    }
+  } catch (e) {
+    dbResult.value = { success: false, error: e.message }
+  } finally {
+    dbLoading.value = false
+  }
+}
+
+const handleRebuildDatabase = async () => {
+  dbOperation.value = 'rebuild'
+  dbLoading.value = true
+  dbResult.value = null
+  
+  try {
+    const result = await rebuildDatabase()
+    dbResult.value = result
+    if (result.success) {
+      setTimeout(() => {
+        showDbModal.value = false
+        location.reload()
+      }, 1500)
+    }
+  } catch (e) {
+    dbResult.value = { success: false, error: e.message }
+  } finally {
+    dbLoading.value = false
+  }
+}
+
+const openDbModal = (operation) => {
+  dbOperation.value = operation
+  dbResult.value = null
+  showDbModal.value = true
+}
+
+const closeDbModal = () => {
+  if (!dbLoading.value) {
+    showDbModal.value = false
+  }
+}
 
 onMounted(() => {
   initAdmin()

@@ -153,7 +153,19 @@ const translations = reactive({
     imageSizeWarning: '[WARN] Image size > 800KB, consider using external URL',
     enterServerName: '[WARN] Please enter a server name',
     loginRequired: 'Please log in to view historical data longer than 1 hour',
-    loginRequiredTitle: 'Login Required'
+    loginRequiredTitle: 'Login Required',
+    dbManagement: 'Database Management',
+    upgradeDatabase: 'Upgrade Database',
+    rebuildDatabase: 'Rebuild Database',
+    upgradeDesc: 'Update database schema to latest version',
+    rebuildDesc: 'Drop all tables and recreate (clears all data)',
+    dangerOperation: 'Dangerous Operation',
+    rebuildWarning: 'This operation will delete all server data and monitoring history. This action is irreversible!',
+    confirmRebuild: 'Confirm Rebuild',
+    operationSuccess: 'Operation successful',
+    operationFailed: 'Operation failed',
+    upgrading: 'Upgrading...',
+    rebuilding: 'Rebuilding...'
   },
   zh: {
     theme: '主题',
@@ -307,7 +319,19 @@ const translations = reactive({
     imageSizeWarning: '[警告] 图片大小超过 800KB，建议使用外部链接',
     enterServerName: '[警告] 请输入服务器名称',
     loginRequired: '请先登录以查看1小时以上的历史数据',
-    loginRequiredTitle: '需要登录'
+    loginRequiredTitle: '需要登录',
+    dbManagement: '数据库管理',
+    upgradeDatabase: '升级数据库',
+    rebuildDatabase: '重建数据库',
+    upgradeDesc: '更新数据库结构到最新版本',
+    rebuildDesc: '删除所有表并重新创建（清空所有数据）',
+    dangerOperation: '危险操作',
+    rebuildWarning: '此操作将删除所有服务器数据和监控历史记录，此操作不可撤销！',
+    confirmRebuild: '确认重建',
+    operationSuccess: '操作成功',
+    operationFailed: '操作失败',
+    upgrading: '升级中...',
+    rebuilding: '重建中...'
   }
 })
 

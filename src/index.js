@@ -1,4 +1,4 @@
-import { initDatabase, cleanupOldData, getMetricsHistory } from './database/schema.js';
+import { initDatabase, cleanupOldData, getMetricsHistory, rebuildDatabase } from './database/schema.js';
 import { checkOfflineNodes } from './services/notification.js';
 import { updateDatabase, cleanupStaleSettings } from './database/updateDatabase.js';
 import { handleAdminAPI } from './handlers/admin.js';
@@ -73,8 +73,7 @@ export default {
 
     async function handleManualCleanup() {
       if (!checkAuth(request, env)) {
-        const sys = await loadSettings(env.DB);
-        return authResponse(sys.admin_title);
+        return simpleAuthResponse();
       }
       
       const result = await cleanupOldData(env.DB);
@@ -86,11 +85,22 @@ export default {
 
     async function handleUpdateDatabase() {
       if (!checkAuth(request, env)) {
-        const sys = await loadSettings(env.DB);
-        return authResponse(sys.admin_title);
+        return simpleAuthResponse();
       }
       
       const result = await updateDatabase(env.DB);
+      
+      return new Response(JSON.stringify(result), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    async function handleRebuildDatabase() {
+      if (!checkAuth(request, env)) {
+        return simpleAuthResponse();
+      }
+      
+      const result = await rebuildDatabase(env.DB);
       
       return new Response(JSON.stringify(result), {
         headers: { 'Content-Type': 'application/json' }
@@ -106,6 +116,7 @@ export default {
     const routes = [
       { method: 'GET', path: '/clear', handler: handleManualCleanup },
       { method: 'GET', path: '/updateDatabase', handler: handleUpdateDatabase },
+      { method: 'GET', path: '/rebuild', handler: handleRebuildDatabase },
       { method: 'POST', path: '/admin/api', handler: async () => {
         const sys = await loadSettings(env.DB);
         return handleAdminAPI(request, env, sys);

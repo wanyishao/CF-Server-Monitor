@@ -92,6 +92,46 @@ export async function initDatabase(db) {
   }
 }
 
+export async function rebuildDatabase(db) {
+  console.log('开始执行数据库重建...');
+  
+  try {
+    await db.prepare(`DROP TABLE IF EXISTS metrics_history`).run();
+    console.log('✅ 已删除 metrics_history 表');
+    
+    await db.prepare(`DROP TABLE IF EXISTS servers`).run();
+    console.log('✅ 已删除 servers 表');
+    
+    await db.prepare(`DROP TABLE IF EXISTS settings`).run();
+    console.log('✅ 已删除 settings 表');
+    
+    dbInitialized = false;
+    metricsHistoryCache.clear();
+    
+    await initDatabase(db);
+    
+    console.log('✅ 数据库重建完成');
+    
+    return {
+      success: true,
+      message: {
+        en: 'Database rebuilt successfully',
+        zh: '数据库重建成功'
+      }
+    };
+  } catch (e) {
+    console.error('❌ 数据库重建失败:', e);
+    return {
+      success: false,
+      message: {
+        en: 'Database rebuild failed',
+        zh: '数据库重建失败'
+      },
+      error: e.message
+    };
+  }
+}
+
 export async function getMetricsHistory(db, serverId, hours, columns) {
   const now = Date.now();
   const cacheKey = getCacheKey(serverId, hours, columns);

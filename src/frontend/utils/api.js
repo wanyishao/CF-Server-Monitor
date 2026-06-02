@@ -113,3 +113,29 @@ export const fetchConfig = async () => {
   if (!res.ok) return null
   return await res.json()
 }
+
+export const upgradeDatabase = async () => {
+  const res = await fetch(`${API_BASE}/updateDatabase`, {
+    headers: getAuthHeader()
+  })
+  if (!res.ok) {
+    if (res.status === 401) {
+      return { success: false, error: 'Unauthorized' }
+    }
+    return { success: false, error: 'Request failed' }
+  }
+  return await res.json()
+}
+
+export const rebuildDatabase = async () => {
+  const res = await fetch(`${API_BASE}/rebuild`, {
+    headers: getAuthHeader()
+  })
+  if (!res.ok) {
+    if (res.status === 401) {
+      return { success: false, error: 'Unauthorized' }
+    }
+    return { success: false, error: 'Request failed' }
+  }
+  return await res.json()
+}
