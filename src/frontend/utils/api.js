@@ -161,7 +161,7 @@ export const fetchConfig = async () => {
 }
 
 export const upgradeDatabase = async () => {
-  const result = await http.post('/updateDatabase')
+  const result = await http.post('/updateDatabase', {}, { autoRedirect: false })
   if (result.error) {
     if (result.status === 401) {
       return { success: false, error: 'Unauthorized' }
@@ -172,7 +172,7 @@ export const upgradeDatabase = async () => {
 }
 
 export const rebuildDatabase = async () => {
-  const result = await http.post('/rebuild')
+  const result = await http.post('/rebuild', {}, { autoRedirect: false })
   if (result.error) {
     if (result.status === 401) {
       return { success: false, error: 'Unauthorized' }
